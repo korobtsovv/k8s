@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myresume-deployment
+  labels:
+    app: myresume-web
+    env: prod
+    owner: Volodymyr-Korobtsov
+spec:
+  selector:
+    matchLabels:
+      project: myresume
+  template:
+    metadata:
+      labels:
+        project: myresume
+    spec:
+      containers:
+        - name: myresume-docker
+          image: korobtsovv/myresume:latest
+          ports:
+            - containerPort: 80
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myresume-autoscaling
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myresume-deployment
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myresume-service
+  labels:
+    env: prod
+    owner: Volodymyr-Korobtsov
+spec:
+  selector:
+    project: myresume
+  ports:
+    - name: myresume-listener
+      protocol: TCP
+      port: 8888
+      targetPort: 80
+  type: NodePort
